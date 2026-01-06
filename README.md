@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PhotoEditor - CSS-Based Photo Editor with Cloud Storage
 
-## Getting Started
+A powerful, account-based photo editor built with Next.js, MongoDB, and CSS filters. Features a Photoshop-inspired interface with cloud storage capabilities.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### 🎨 Photo Editing
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **CSS-based filters**: Blur, Brightness, Contrast, Grayscale, Hue Rotate, Saturation, Sepia, Invert, Opacity
+- **Real-time preview**: See changes instantly as you adjust filters
+- **Save edited versions**: Export and save your edited images
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 👤 User Management
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Secure authentication**: Email/password login with NextAuth
+- **User sessions**: Persistent login sessions
 
-## Learn More
+### 💾 Image Management
 
-To learn more about Next.js, take a look at the following resources:
+- **Cloud storage**: Images stored in MongoDB
+- **CRUD operations**: Full image management
+- **Tags & Titles**: Organize with metadata
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 🔍 Search & Organization
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Smart search**: Search by title and tags
+- **Tag system**: Custom tags for organization
 
-## Deploy on Vercel
+### 📊 Free Tier
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **10 images maximum**
+- **5MB per file limit**
+- **Smart compression**: Auto-compress oversized files
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Quick Start
+
+1. **Install dependencies**
+
+   ```bash
+   npm install
+   ```
+
+2. **Set up environment variables**
+   Create `.env.local`:
+
+   ```env
+   MONGODB_URI=mongodb://localhost:27017/photo-editor
+   NEXTAUTH_SECRET=your-secret-key
+   NEXTAUTH_URL=http://localhost:3000
+   ```
+
+3. **Run the development server**
+
+   ```bash
+   npm run dev
+   ```
+
+4. **Open browser**
+   Navigate to http://localhost:3000
+
+## Tech Stack
+
+- Next.js 15
+- MongoDB + Mongoose
+- NextAuth.js
+- Tailwind CSS
+- TypeScript
+
+## Usage
+
+1. Create an account (Sign up)
+2. Upload images (max 5MB)
+3. Edit with CSS filters
+4. Search by tags/title
+5. Manage your gallery
+
+## License
+
+MIT License
