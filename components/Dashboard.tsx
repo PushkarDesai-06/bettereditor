@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import PhotoEditor from "@/components/PhotoEditor";
+import type { FilterSettings } from "@/components/PhotoEditor";
 import ImageUpload from "@/components/ImageUpload";
 import {
   FaPlus,
@@ -12,6 +14,8 @@ import {
   FaTrash,
   FaSignOutAlt,
   FaImage,
+  FaEllipsisV,
+  FaDownload,
 } from "react-icons/fa";
 
 interface Image {
@@ -19,6 +23,7 @@ interface Image {
   title: string;
   tags: string[];
   imageData: string;
+  filters?: FilterSettings;
   originalSize: number;
   createdAt: string;
 }
@@ -33,6 +38,14 @@ export default function Dashboard() {
   const [editingImage, setEditingImage] = useState<Image | null>(null);
   const [selectedImage, setSelectedImage] = useState<Image | null>(null);
   const [showEditor, setShowEditor] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+  const burgerButtonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>(
+    {}
+  );
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -86,7 +99,10 @@ export default function Dashboard() {
     setShowEditor(true);
   };
 
-  const handleSaveEdit = async (editedImageData: string) => {
+  const handleSaveEdit = async (
+    editedImageData: string,
+    filters: FilterSettings
+  ) => {
     if (!selectedImage) return;
 
     try {
@@ -96,7 +112,7 @@ export default function Dashboard() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          imageData: editedImageData,
+          filters,
         }),
       });
 
@@ -131,6 +147,51 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Failed to update image:", error);
     }
+  };
+
+  const handleExportImage = (image: Image) => {
+    // Create a canvas to apply filters if they exist
+    const canvas = document.createElement("canvas");
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+
+    img.onload = () => {
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+
+      if (ctx && image.filters) {
+        // Apply filters
+        const {
+          blur,
+          brightness,
+          contrast,
+          grayscale,
+          hueRotate,
+          saturate,
+          sepia,
+          invert,
+          opacity,
+        } = image.filters;
+        ctx.filter = `blur(${blur}px) brightness(${brightness}%) contrast(${contrast}%) grayscale(${grayscale}%) hue-rotate(${hueRotate}deg) saturate(${saturate}%) sepia(${sepia}%) invert(${invert}%) opacity(${opacity}%)`;
+        ctx.drawImage(img, 0, 0);
+
+        // Download filtered image
+        const link = document.createElement("a");
+        link.download = `${image.title.replace(/\s+/g, "-")}-${Date.now()}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      } else {
+        // Download original image
+        const link = document.createElement("a");
+        link.download = `${image.title.replace(/\s+/g, "-")}-${Date.now()}.png`;
+        link.href = image.imageData;
+        link.click();
+      }
+    };
+
+    img.src = image.imageData;
+    setOpenMenuId(null);
   };
 
   if (status === "loading" || loading) {
@@ -281,29 +342,97 @@ export default function Dashboard() {
                       />
                     </div>
                   ) : (
-                    <div
-                      onClick={() => setEditingImage(image)}
-                      className="cursor-pointer"
-                    >
-                      <h3 className="text-white font-semibold mb-2">
-                        {image.title}
-                      </h3>
-                      {image.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-2">
-                          {image.tags.map((tag, index) => (
-                            <span
-                              key={index}
-                              className="bg-gray-800 text-gray-300 px-2 py-1 rounded text-xs"
+                    <div className="relative">
+                      <div
+                        onClick={() => setEditingImage(image)}
+                        className="cursor-pointer"
+                      >
+                        <h3 className="text-white font-semibold mb-2 pr-8">
+                          {image.title}
+                        </h3>
+                        {image.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            {image.tags.map((tag, index) => (
+                              <span
+                                key={index}
+                                className="bg-gray-800 text-gray-300 px-2 py-1 rounded text-xs"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-gray-500 text-xs">
+                          {new Date(image.createdAt).toLocaleDateString()} •{" "}
+                          {(image.originalSize / (1024 * 1024)).toFixed(2)}MB
+                        </p>
+                      </div>
+                      {/* Burger Menu */}
+                      <div className="absolute top-0 right-0">
+                        <button
+                          ref={(el) => {
+                            if (el) burgerButtonRefs.current[image._id] = el;
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (openMenuId === image._id) {
+                              setOpenMenuId(null);
+                              setMenuPosition(null);
+                            } else {
+                              const rect =
+                                burgerButtonRefs.current[
+                                  image._id
+                                ]?.getBoundingClientRect();
+                              if (rect) {
+                                setMenuPosition({
+                                  top: rect.bottom + window.scrollY + 4,
+                                  left: rect.right + window.scrollX - 160, // 160px = min-w-40 * 4
+                                });
+                              }
+                              setOpenMenuId(image._id);
+                            }
+                          }}
+                          className="text-gray-400 hover:text-white p-1 transition-colors"
+                          title="Options"
+                        >
+                          <FaEllipsisV size={16} />
+                        </button>
+                        {openMenuId === image._id &&
+                          menuPosition &&
+                          typeof window !== "undefined" &&
+                          createPortal(
+                            <div
+                              className="fixed bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden min-w-40"
+                              style={{
+                                top: `${menuPosition.top}px`,
+                                left: `${menuPosition.left}px`,
+                                zIndex: 9999,
+                              }}
                             >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      <p className="text-gray-500 text-xs">
-                        {new Date(image.createdAt).toLocaleDateString()} •{" "}
-                        {(image.originalSize / (1024 * 1024)).toFixed(2)}MB
-                      </p>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingImage(image);
+                                  setOpenMenuId(null);
+                                  setMenuPosition(null);
+                                }}
+                                className="w-full text-left px-4 py-2 text-white hover:bg-gray-700 transition-colors text-sm flex items-center gap-2"
+                              >
+                                <FaEdit size={14} /> Edit Details
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleExportImage(image);
+                                }}
+                                className="w-full text-left px-4 py-2 text-white hover:bg-gray-700 transition-colors text-sm flex items-center gap-2"
+                              >
+                                <FaDownload size={14} /> Export Image
+                              </button>
+                            </div>,
+                            document.body
+                          )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -327,6 +456,7 @@ export default function Dashboard() {
       {showEditor && selectedImage && (
         <PhotoEditor
           imageData={selectedImage.imageData}
+          initialFilters={selectedImage.filters}
           onSave={handleSaveEdit}
           onClose={() => {
             setShowEditor(false);

@@ -4,10 +4,30 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import dbConnect from "@/lib/mongodb";
 import Image from "@/models/Image";
 
+type ImageFilters = {
+  blur: number;
+  brightness: number;
+  contrast: number;
+  grayscale: number;
+  hueRotate: number;
+  saturate: number;
+  sepia: number;
+  invert: number;
+  opacity: number;
+};
+
+type ImageUpdateData = {
+  updatedAt: Date;
+  title?: string;
+  tags?: string[];
+  imageData?: string;
+  filters?: ImageFilters;
+};
+
 // GET a specific image
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,9 +35,10 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
     await dbConnect();
     const image = await Image.findOne({
-      _id: params.id,
+      _id: id,
       userId: session.user.id,
     });
 
@@ -38,7 +59,7 @@ export async function GET(
 // PUT update an image
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -46,17 +67,19 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { title, tags, imageData } = await request.json();
+    const { title, tags, imageData, filters } = await request.json();
+    const { id } = await params;
 
     await dbConnect();
 
-    const updateData: any = { updatedAt: new Date() };
+    const updateData: ImageUpdateData = { updatedAt: new Date() };
     if (title) updateData.title = title;
     if (tags) updateData.tags = tags;
     if (imageData) updateData.imageData = imageData;
+    if (filters) updateData.filters = filters;
 
     const image = await Image.findOneAndUpdate(
-      { _id: params.id, userId: session.user.id },
+      { _id: id, userId: session.user.id },
       updateData,
       { new: true }
     );
@@ -78,7 +101,7 @@ export async function PUT(
 // DELETE an image
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -86,10 +109,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
     await dbConnect();
 
     const image = await Image.findOneAndDelete({
-      _id: params.id,
+      _id: id,
       userId: session.user.id,
     });
 

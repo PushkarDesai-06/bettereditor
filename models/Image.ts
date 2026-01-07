@@ -6,6 +6,17 @@ export interface IImage {
   title: string;
   tags: string[];
   imageData: string; // Base64 encoded image
+  filters?: {
+    blur: number;
+    brightness: number;
+    contrast: number;
+    grayscale: number;
+    hueRotate: number;
+    saturate: number;
+    sepia: number;
+    invert: number;
+    opacity: number;
+  };
   originalSize: number;
   createdAt: Date;
   updatedAt: Date;
@@ -28,6 +39,20 @@ const ImageSchema = new Schema<IImage>({
   imageData: {
     type: String,
     required: true,
+  },
+  filters: {
+    type: {
+      blur: { type: Number, required: true },
+      brightness: { type: Number, required: true },
+      contrast: { type: Number, required: true },
+      grayscale: { type: Number, required: true },
+      hueRotate: { type: Number, required: true },
+      saturate: { type: Number, required: true },
+      sepia: { type: Number, required: true },
+      invert: { type: Number, required: true },
+      opacity: { type: Number, required: true },
+    },
+    required: false,
   },
   originalSize: {
     type: Number,
